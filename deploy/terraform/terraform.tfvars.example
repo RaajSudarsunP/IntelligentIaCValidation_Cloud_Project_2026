@@ -1,0 +1,10 @@
+aws_region                 = "us-east-1"
+environment                = "prod"
+project_name               = "iac-assurance"
+documentdb_master_username = "iacadmin"
+documentdb_master_password = "ReplaceWithStrongPassword2026!"
+bedrock_model_id           = "anthropic.claude-3-5-sonnet-20241022-v2:0"
+backend_cpu                = 512
+backend_memory             = 1024
+ml_engine_cpu              = 1024
+ml_engine_memory           = 2048
