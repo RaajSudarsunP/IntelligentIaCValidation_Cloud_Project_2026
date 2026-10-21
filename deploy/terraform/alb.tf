@@ -51,7 +51,7 @@ resource "aws_lb_target_group" "backend" {
   port        = 8000
   protocol    = "HTTP"
   vpc_id      = aws_vpc.main.id
-  target_type = "ip"
+  target_type = "instance"
 
   health_check {
     enabled             = true

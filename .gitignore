@@ -157,4 +157,11 @@ venv/
 # Local/generated files
 .freebuff/
 src/backend/storage/uploads/*
-!src/backend/storage/uploads/.gitkeep
+!src/backend/storage/uploads/.gitkeep 
+# Terraform local state and locks
+**/.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+*.tfvars
+!*.tfvars.example

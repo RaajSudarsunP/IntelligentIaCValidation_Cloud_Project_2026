@@ -1,10 +1,10 @@
 # ==============================================================================
-# IAM Roles & Policies for ECS Tasks
+# IAM Roles & Policies for EC2 Instances
 # ==============================================================================
 
-# ECS Task Execution Role (used by ECS agent to pull images and push logs)
-resource "aws_iam_role" "ecs_execution_role" {
-  name = "${var.project_name}-ecs-execution-role-${var.environment}"
+# EC2 Instance Role (used by application code at runtime)
+resource "aws_iam_role" "ec2_app_role" {
+  name = "${var.project_name}-ec2-app-role-${var.environment}"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -13,40 +13,23 @@ resource "aws_iam_role" "ecs_execution_role" {
         Action    = "sts:AssumeRole"
         Effect    = "Allow"
         Principal = {
-          Service = "ecs-tasks.amazonaws.com"
+          Service = "ec2.amazonaws.com"
         }
       }
     ]
   })
 }
 
-resource "aws_iam_role_policy_attachment" "ecs_execution_default" {
-  role       = aws_iam_role.ecs_execution_role.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+# Instance Profile for EC2
+resource "aws_iam_instance_profile" "ec2_app" {
+  name = "${var.project_name}-ec2-app-profile-${var.environment}"
+  role = aws_iam_role.ec2_app_role.name
 }
 
-# ECS Task Role (used by application code at runtime)
-resource "aws_iam_role" "ecs_task_role" {
-  name = "${var.project_name}-ecs-task-role-${var.environment}"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Action    = "sts:AssumeRole"
-        Effect    = "Allow"
-        Principal = {
-          Service = "ecs-tasks.amazonaws.com"
-        }
-      }
-    ]
-  })
-}
-
-# Task Role Policy: S3, Bedrock, and CloudWatch
-resource "aws_iam_policy" "ecs_task_policy" {
-  name        = "${var.project_name}-task-policy-${var.environment}"
-  description = "Allows ECS tasks to interact with S3, Amazon Bedrock, and CloudWatch"
+# Application Policy: S3, Bedrock, CloudWatch, and SSM
+resource "aws_iam_policy" "ec2_app_policy" {
+  name        = "${var.project_name}-ec2-app-policy-${var.environment}"
+  description = "Allows EC2 instances to interact with S3, Amazon Bedrock, CloudWatch, and SSM"
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -77,13 +60,17 @@ resource "aws_iam_policy" "ecs_task_policy" {
           "arn:aws:bedrock:${var.aws_region}:*:custom-model/*"
         ]
       },
-      # CloudWatch Telemetry Metrics for drift analysis
+      # CloudWatch Logs and Metrics
       {
         Effect = "Allow"
         Action = [
           "cloudwatch:GetMetricData",
           "cloudwatch:GetMetricStatistics",
-          "cloudwatch:ListMetrics"
+          "cloudwatch:ListMetrics",
+          "cloudwatch:PutMetricData",
+          "logs:CreateLogStream",
+          "logs:PutLogEvents",
+          "logs:DescribeLogStreams"
         ]
         Resource = "*"
       },
@@ -95,12 +82,28 @@ resource "aws_iam_policy" "ecs_task_policy" {
           "config:BatchGetResourceConfig"
         ]
         Resource = "*"
+      },
+      # SSM for Session Manager access (optional SSH alternative)
+      {
+        Effect = "Allow"
+        Action = [
+          "ssm:UpdateInstanceInformation",
+          "ssmmessages:*",
+          "ec2messages:*"
+        ]
+        Resource = "*"
       }
     ]
   })
 }
 
-resource "aws_iam_role_policy_attachment" "ecs_task_policy_attach" {
-  role       = aws_iam_role.ecs_task_role.name
-  policy_arn = aws_iam_policy.ecs_task_policy.arn
+resource "aws_iam_role_policy_attachment" "ec2_app_policy_attach" {
+  role       = aws_iam_role.ec2_app_role.name
+  policy_arn = aws_iam_policy.ec2_app_policy.arn
+}
+
+# Attach SSM managed policy for Session Manager
+resource "aws_iam_role_policy_attachment" "ec2_ssm" {
+  role       = aws_iam_role.ec2_app_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }

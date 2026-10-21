@@ -80,5 +80,11 @@ variable "ml_engine_memory" {
 variable "bedrock_model_id" {
   description = "Amazon Bedrock model ID for LLM reasoning and recommendations"
   type        = string
-  default     = "anthropic.claude-3-5-sonnet-20241022-v2:0"
+  default     = "anthropic.claude-sonnet-4-5-20250929-v1:0"
+}
+
+variable "ssh_public_key" {
+  description = "SSH public key for EC2 instance access"
+  type        = string
+  default     = ""
 }
